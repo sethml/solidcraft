@@ -1,0 +1,4 @@
+SmApiBoolean -> solidcore: SmApiBoolean: boolean::merge::p2::make_faceuse: no radial edge use classifies the face's edge use
+numeric arguments are not recorded
+input a: 000000-SmApiBoolean-a.smb
+input b: 000000-SmApiBoolean-b.smb
