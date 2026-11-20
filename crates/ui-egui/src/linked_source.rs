@@ -249,9 +249,11 @@ fn inside_design_folder(design: Option<&str>, link: &str) -> bool {
         out
     };
     let Ok(dir) = std::path::absolute(dir) else { return false };
+    // Resolved before `..` is taken away as text: `alias/..` is the parent of what `alias` names.
+    let real = std::fs::canonicalize(&dir).ok();
     let dir = lexical(&dir);
     let target = lexical(&dir.join(link));
-    target.starts_with(&dir) || std::fs::canonicalize(&dir).is_ok_and(|real| target.starts_with(real))
+    target.starts_with(&dir) || real.is_some_and(|real| target.starts_with(real))
 }
 
 /// Update Links (`options` as it was asked) read the shown design's links again: those it read
@@ -805,6 +807,13 @@ mod tests {
             let real = folder.join("received").canonicalize().unwrap();
             assert!(inside_design_folder(Some(&through), &real.join("part.sc").to_string_lossy()));
             assert!(!inside_design_folder(Some(&through), &real.join("../housing.solidcraft").to_string_lossy()));
+            // `alias/..` is the folder above the one `alias` names, not the one holding `alias`.
+            std::fs::create_dir_all(folder.join("received").join("sub")).unwrap();
+            std::fs::create_dir_all(folder.join("elsewhere")).unwrap();
+            let deep = folder.join("elsewhere").join("deep");
+            std::os::unix::fs::symlink(folder.join("received").join("sub"), &deep).unwrap();
+            let up = deep.join("..").join("case.solidcraft").to_string_lossy().into_owned();
+            assert!(inside_design_folder(Some(&up), &real.join("part.sc").to_string_lossy()));
         }
         let _ = std::fs::remove_dir_all(folder);
     }
